@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from 'react-hot-toast';
-import VoiceAssistant from '@/components/VoiceAssistant';
+import UpvoteWidget from '@/components/UpvoteWidget';
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +31,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 transition-colors duration-200 selection:bg-indigo-500/30">
         <AuthProvider>
           <Toaster position="top-center" />
-          <VoiceAssistant />
+          <UpvoteWidget />
+
           {children}
         </AuthProvider>
       </body>
