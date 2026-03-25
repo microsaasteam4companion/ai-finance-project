@@ -1,0 +1,176 @@
+'use client';
+
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity } from 'lucide-react';
+import toast from 'react-hot-toast';
+import Script from 'next/script';
+import Sidebar from '@/components/Sidebar';
+
+export default function BillingPage() {
+  const { user, loading: authLoading, tier, refreshTier } = useAuth();
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (!authLoading && !user) router.push('/login');
+  }, [user, authLoading]);
+
+  const isPremium = tier === 'premium';
+
+  const handleUpgrade = async () => {
+    if (!user || isPremium) return;
+    setIsProcessing(true);
+    const toastId = toast.loading('Initiating secure checkout...');
+
+    try {
+      const orderRes = await fetch('/api/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 199 }) });
+      const order = await orderRes.json();
+      if (order.error) throw new Error(order.error);
+
+      toast.dismiss(toastId);
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_SUdoUNFkPmvh1E',
+        amount: order.amount,
+        currency: order.currency,
+        name: "FinGenius Premium",
+        description: "Unlock Advanced Wealth Tools & AI Advisors",
+        order_id: order.id,
+        prefill: { email: user.email },
+        theme: { color: "#4f46e5" },
+        handler: async function (response: any) {
+           toast.loading('Verifying secure origin signature...', { id: toastId });
+           
+           const verifyRes = await fetch('/api/razorpay/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...response, userId: user.id }) });
+           const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+               if (verifyData.warning === 'db_update_failed') {
+                  toast.error('Payment verified, but server config is missing! Check .env.local for SERVICE_ROLE_KEY.', { id: toastId, duration: 10000 });
+               } else {
+                  await refreshTier(); // Update global auth state from DB/Whitelist
+                  toast.success('Welcome to FinGenius Premium! 🎉', { id: toastId, duration: 5000 });
+               }
+            } else {
+               toast.error('Cryptographic signature verification failed!', { id: toastId });
+            }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) { toast.error(response.error.description); });
+      rzp.open();
+    } catch(err: any) {
+      toast.error(err.message, { id: toastId });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  if (authLoading || !user || !mounted) {
+    return <div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>;
+  }
+
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <Sidebar />
+
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Account Billing</h1>
+          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
+            <User className="w-5 h-5" />
+          </div>
+        </header>
+
+        <div className="p-8 max-w-5xl mx-auto flex flex-col items-center pb-20">
+
+      <div className="w-full max-w-5xl mx-auto mb-10 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between">
+         <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+               <User className="w-8 h-8" />
+            </div>
+            <div>
+               <h2 className="text-xl font-bold text-slate-800">{user.email}</h2>
+               <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm font-medium text-slate-500">Current Plan:</span>
+                  {isPremium ? (
+                     <span className="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1"><Check className="w-3 h-3"/> Premium Wealth</span>
+                  ) : (
+                     <span className="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded text-xs">Free Tier</span>
+                  )}
+               </div>
+            </div>
+         </div>
+         {isPremium && (
+            <div className="mt-4 md:mt-0 flex items-center gap-2 text-emerald-600 font-medium bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
+               <Shield className="w-5 h-5" /> Your account is fully unlocked.
+            </div>
+         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
+         
+         {/* Free Tier Card */}
+         <div className={`bg-white rounded-[2rem] p-10 border ${!isPremium ? 'border-slate-300 shadow-xl shadow-slate-200/50' : 'border-slate-200 shadow-sm opacity-70'} flex flex-col relative transition-all`}>
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">Free Plan</h3>
+            <div className="flex items-baseline gap-1 mb-8">
+               <span className="text-5xl font-extrabold text-slate-900">₹0</span>
+               <span className="text-slate-500 font-medium">/forever</span>
+            </div>
+            <ul className="space-y-4 mb-10 flex-1">
+               <li className="flex items-center gap-3 text-slate-600 font-medium"><Check className="w-5 h-5 text-indigo-500 shrink-0"/> Expense tracking & Receipt OCR</li>
+               <li className="flex items-center gap-3 text-slate-600 font-medium"><Check className="w-5 h-5 text-indigo-500 shrink-0"/> Basic AI Insights</li>
+            </ul>
+            <button disabled className="w-full py-4 rounded-xl bg-slate-50 text-slate-400 font-bold border border-slate-200 cursor-not-allowed">
+               {isPremium ? 'Included' : 'Currently Active'}
+            </button>
+         </div>
+
+         {/* Premium Tier Card */}
+         <div className={`rounded-[2rem] p-10 flex flex-col relative transition-all z-10 ${isPremium ? 'bg-white border border-slate-200 shadow-sm' : 'bg-gradient-to-b from-indigo-900 to-indigo-950 border border-indigo-700 shadow-2xl shadow-indigo-900/30'}`}>
+            {isPremium && <div className="absolute inset-0 bg-white/40 z-20 pointer-events-none rounded-[2rem] backdrop-blur-[1px]"></div>}
+            
+            <h3 className={`text-2xl font-bold mb-2 flex items-center gap-2 ${isPremium ? 'text-slate-800' : 'text-white'}`}><Sparkles className={`w-6 h-6 ${isPremium ? 'text-indigo-400' : 'text-orange-400'}`}/> Premium Tier</h3>
+            <div className="flex items-baseline gap-1 mb-8">
+               <span className={`text-5xl font-extrabold ${isPremium ? 'text-slate-900' : 'text-white'}`}>₹199</span>
+               <span className={`font-medium ${isPremium ? 'text-slate-500' : 'text-indigo-300'}`}>/month</span>
+            </div>
+            
+            <ul className={`space-y-3 mb-10 flex-1 relative ${isPremium ? 'text-slate-600' : 'text-indigo-100 z-10'}`}>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={isPremium ? 'text-slate-700' : 'text-indigo-100'}>Basic AI Insights & Dashboard</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={isPremium ? 'text-slate-700' : 'text-indigo-100'}>Advanced Budgeting</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={`font-bold ${isPremium ? 'text-slate-800' : 'text-white'}`}>FIRE Planner</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={`font-bold ${isPremium ? 'text-slate-800' : 'text-white'}`}>Tax Wizard</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={`font-bold ${isPremium ? 'text-slate-800' : 'text-white'}`}>Portfolio X-Ray</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={`font-bold ${isPremium ? 'text-slate-800' : 'text-white'}`}>Couple's Planner</span></li>
+               <li className="flex items-center gap-3 font-medium"><Check className={`w-5 h-5 shrink-0 ${isPremium ? 'text-emerald-500' : 'text-emerald-400'}`}/> <span className={`font-bold ${isPremium ? 'text-slate-800' : 'text-white'}`}>Priority Support</span></li>
+            </ul>
+            
+            <button 
+              onClick={handleUpgrade} 
+              disabled={isProcessing || isPremium}
+              className={`w-full relative z-30 py-4 rounded-xl font-extrabold shadow-lg transition-all flex items-center justify-center gap-2 text-lg ${isPremium ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-none cursor-not-allowed' : 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-900 shadow-emerald-500/25 hover:scale-[1.02]'}`}
+            >
+               {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{isPremium ? 'Active Subscription' : 'Upgrade Now'} {!isPremium && <ArrowRight className="w-5 h-5"/>}</>}
+            </button>
+         </div>
+
+           </div>
+
+        </div>
+      </main>
+    </div>
+  );
+}
