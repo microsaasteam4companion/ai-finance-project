@@ -71,7 +71,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
        
        if (type === 'expense') {
           // Budget threshold check (case-insensitive)
-          const { data: bData } = await supabase.from('budgets').select('*').ilike('category', category).eq('user_id', user.id).single();
+          const { data: bData } = await supabase.from('budgets').select('*').ilike('category', category).eq('user_id', user.id).maybeSingle();
           if (bData) {
              const startOfMonth = new Date(); startOfMonth.setDate(1);
              const { data: tData } = await supabase.from('transactions').select('amount, category').eq('type', 'expense').ilike('category', category).gte('date', startOfMonth.toISOString().split('T')[0]);

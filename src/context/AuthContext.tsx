@@ -9,10 +9,10 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   tier: string;
-  refreshTier: () => Promise<void>;
+  refreshTier: () => Promise<string>;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, tier: 'free', refreshTier: async () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, tier: 'free', refreshTier: async () => 'free' });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -25,11 +25,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     const { data } = await supabase.from('profiles').select('tier').eq('id', userId).single();
-    setTier(data?.tier || 'free');
+    const newTier = data?.tier || 'free';
+    setTier(newTier);
+    return newTier;
   };
 
   const refreshTier = async () => {
-    if (user) await fetchTier(user.id, user.email || undefined);
+    if (user) return await fetchTier(user.id, user.email || undefined);
+    return 'free';
   };
 
   useEffect(() => {

@@ -4,8 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Activity, User as UserIcon, Plus, Target, Wallet, ArrowUpRight, ArrowDownRight, CreditCard, AlertCircle } from 'lucide-react';
+import { Home, PieChart, Activity, User as UserIcon, Plus, Target, Wallet, ArrowUpRight, ArrowDownRight, CreditCard, AlertCircle, Menu } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function BudgetsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +20,7 @@ export default function BudgetsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [category, setCategory] = useState('');
   const [limit, setLimit] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -71,37 +73,38 @@ export default function BudgetsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Budget Planning</h1>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <UserIcon className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto font-sans relative">
+        <DashboardHeader 
+          title="Budget Planner" 
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-5xl mx-auto space-y-8 pb-20">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-slate-800">Monthly Budgets</h2>
-            <button onClick={() => setShowAdd(!showAdd)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-medium shadow-sm hover:bg-indigo-700 transition flex items-center gap-2">
+            <button onClick={() => setShowAdd(!showAdd)} className="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium shadow-sm hover:bg-indigo-700 transition flex items-center gap-2">
               <Plus className="w-4 h-4"/> New Budget
             </button>
           </div>
 
           {showAdd && (
-            <form onSubmit={handleAddBudget} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 flex flex-col md:flex-row gap-4 items-end mb-8">
+            <form onSubmit={handleAddBudget} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 flex flex-col md:flex-row gap-4 items-end mb-8 text-slate-900 font-sans relative">
               <div className="flex-1 w-full">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-                <input required type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Food" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" />
+                <input required type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Food" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div className="flex-1 w-full">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Monthly Limit (₹)</label>
                 <input required type="number" value={limit} onChange={e => setLimit(e.target.value)} placeholder="e.g. 5000" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div className="w-full md:w-auto">
-                <button type="submit" className="w-full md:w-auto px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium">Save</button>
+                <button type="submit" className="w-full md:w-auto px-6 py-2 bg-indigo-600 text-white rounded-md font-medium">Save</button>
               </div>
             </form>
           )}
@@ -117,7 +120,7 @@ export default function BudgetsPage() {
               if (percentage >= 100) color = "bg-red-500";
 
               return (
-                <div key={b.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                <div key={b.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
                   <div className="flex justify-between items-center mb-4">
                     <div className="font-bold text-lg">{b.category}</div>
                     <div className="text-right">

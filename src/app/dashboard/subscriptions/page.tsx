@@ -4,8 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, HandCoins, AlertCircle, CalendarClock, Bot, Plus , CreditCard } from 'lucide-react';
+import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, HandCoins, AlertCircle, CalendarClock, Bot, Plus , CreditCard, Menu } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function SubscriptionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -14,6 +15,7 @@ export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [detectedSubs, setDetectedSubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -98,18 +100,19 @@ export default function SubscriptionsPage() {
   const totalMonthlyStated = subscriptions.reduce((sum, s) => sum + Number(s.amount), 0);
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10 z-20">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Recurring Payments</h1>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <UserIcon className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto font-sans relative">
+        <DashboardHeader 
+          title="Smart Subscriptions" 
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-5xl mx-auto space-y-8 pb-20">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
                <div>

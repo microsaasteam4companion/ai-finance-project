@@ -4,10 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UploadCloud, FileText, LayoutDashboard, Crosshair, BarChart3, AlertCircle, TrendingUp, Loader2, IndianRupee, Lock, CreditCard, ArrowRight } from 'lucide-react';
+import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UploadCloud, FileText, LayoutDashboard, Crosshair, BarChart3, AlertCircle, TrendingUp, Loader2, IndianRupee, Lock, CreditCard, ArrowRight, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tesseract from 'tesseract.js';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function PortfolioXrayPage() {
   const { user, loading: authLoading, tier } = useAuth();
@@ -17,6 +18,7 @@ export default function PortfolioXrayPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [portfolioData, setPortfolioData] = useState<any>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -92,21 +94,20 @@ export default function PortfolioXrayPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      <main className="flex-1 overflow-y-auto w-full">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-20">
-          <div>
-             <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">MF Portfolio X-Ray</h1>
-             <p className="text-sm text-slate-500 font-medium">Scan CAMS/KFintech statements for overlap & expense analysis.</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <UserIcon className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto w-full font-sans relative">
+        <DashboardHeader 
+          title="MF Portfolio X-Ray" 
+          subtitle="Scan statements for overlap & expense analysis."
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-5xl mx-auto space-y-8 pb-20 relative">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
 
           {tier !== 'premium' && (
              <div className="absolute inset-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8">

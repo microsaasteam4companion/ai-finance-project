@@ -1,24 +1,75 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity } from 'lucide-react';
+import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Script from 'next/script';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function BillingPage() {
   const { user, loading: authLoading, tier, refreshTier } = useAuth();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
     if (!authLoading && !user) router.push('/login');
-  }, [user, authLoading]);
+    
+    // Handle Dodo Payment Success
+    const status = searchParams.get('status');
+    const paymentId = searchParams.get('payment_id');
+
+    if (status === 'succeeded' && paymentId) {
+       const toastId = 'payment-success-toast';
+       toast.success('Payment detected! Finalizing your upgrade...', { id: toastId, duration: 2000 });
+       
+       const verifyAndRefresh = async () => {
+          try {
+             // Direct verification call
+             const res = await fetch('/api/dodo/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, userId: user?.id })
+             });
+             const data = await res.json();
+             
+             if (data.success) {
+                await refreshTier();
+                toast.success('Welcome to FinGenius Premium! 🎉', { id: toastId });
+                router.replace('/dashboard/billing');
+                return true;
+             }
+          } catch (err) {
+             console.error('Verification failed, falling back to polling:', err);
+          }
+          return false;
+       };
+
+       // Initial attempt
+       verifyAndRefresh().then(success => {
+          if (!success) {
+             // Polling fallback
+             const interval = setInterval(async () => {
+                const updated = await refreshTier();
+                if (updated === 'premium') {
+                   toast.success('Welcome to FinGenius Premium! 🎉', { id: toastId });
+                   clearInterval(interval);
+                   router.replace('/dashboard/billing');
+                }
+             }, 3000);
+             setTimeout(() => clearInterval(interval), 30000);
+          }
+       });
+    }
+  }, [user, authLoading, searchParams, refreshTier, router]);
 
   const isPremium = tier === 'premium';
 
@@ -28,46 +79,18 @@ export default function BillingPage() {
     const toastId = toast.loading('Initiating secure checkout...');
 
     try {
-      const orderRes = await fetch('/api/razorpay/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 199 }) });
-      const order = await orderRes.json();
-      if (order.error) throw new Error(order.error);
-
-      toast.dismiss(toastId);
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_SUdoUNFkPmvh1E',
-        amount: order.amount,
-        currency: order.currency,
-        name: "FinGenius Premium",
-        description: "Unlock Advanced Wealth Tools & AI Advisors",
-        order_id: order.id,
-        prefill: { email: user.email },
-        theme: { color: "#4f46e5" },
-        handler: async function (response: any) {
-           toast.loading('Verifying secure origin signature...', { id: toastId });
-           
-           const verifyRes = await fetch('/api/razorpay/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...response, userId: user.id }) });
-           const verifyData = await verifyRes.json();
-
-            if (verifyData.success) {
-               if (verifyData.warning === 'db_update_failed') {
-                  toast.error('Payment verified, but server config is missing! Check .env.local for SERVICE_ROLE_KEY.', { id: toastId, duration: 10000 });
-               } else {
-                  await refreshTier(); // Update global auth state from DB/Whitelist
-                  toast.success('Welcome to FinGenius Premium! 🎉', { id: toastId, duration: 5000 });
-               }
-            } else {
-               toast.error('Cryptographic signature verification failed!', { id: toastId });
-            }
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) { toast.error(response.error.description); });
-      rzp.open();
+      const response = await fetch('/api/dodo/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, email: user.email }),
+      });
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      
+      window.location.href = data.checkout_url;
     } catch(err: any) {
       toast.error(err.message, { id: toastId });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -82,19 +105,19 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Account Billing</h1>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <User className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto font-sans relative">
+        <DashboardHeader 
+          title="Account Billing" 
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-5xl mx-auto flex flex-col items-center pb-20">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto flex flex-col items-center pb-20 relative">
 
       <div className="w-full max-w-5xl mx-auto mb-10 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between">
          <div className="flex items-center gap-4">

@@ -63,10 +63,10 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-6">
-              <ShieldAlert className="w-8 h-8" />
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+              <ShieldAlert className="w-6 h-6 md:w-8 md:h-8" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 leading-tight">Emergency Preparedness</h3>
+            <h3 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">Emergency Preparedness</h3>
             <p className="text-slate-500 font-medium">How many months of basic expenses do you have saved in a liquid bank account today?</p>
             <div className="grid grid-cols-2 gap-4 pt-4">
               {[0, 1, 3, 6].map(m => (
@@ -219,7 +219,7 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
            <div className={`h-full bg-indigo-600 transition-all duration-500`} style={{ width: `${(step / 6) * 100}%` }} />
         </div>
 
-        <div className="p-10 flex-1 overflow-y-auto">
+        <div className="p-6 md:p-10 flex-1 overflow-y-auto">
           <div className="flex justify-between items-center mb-8">
             <span className="text-xs font-black uppercase tracking-widest text-slate-400">Step {step} of 6</span>
             {step > 1 && (
