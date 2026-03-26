@@ -25,6 +25,7 @@ function DashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [calculatingHealth, setCalculatingHealth] = useState(false);
 
 
   useEffect(() => {
@@ -46,6 +47,9 @@ function DashboardContent() {
       console.error('Error fetching transactions:', error);
     } else {
       setTransactions(data || []);
+      // Trigger a short "AI Analyzing" state
+      setCalculatingHealth(true);
+      setTimeout(() => setCalculatingHealth(false), 800);
     }
     
     // Fetch profile for proprietary health score
@@ -72,9 +76,15 @@ function DashboardContent() {
     );
   }
 
-  // Calculate stats
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+  // Calculate stats for CURRENT MONTH
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const currentMonthTransactions = transactions.filter(t => new Date(t.date) >= startOfMonth);
+  const totalIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalExpense = currentMonthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+  
   let healthScore: number | string = 'N/A';
   let dimensions = [
     { name: 'Emergency', score: 0, icon: ShieldCheck, color: 'text-red-500' },
@@ -86,40 +96,49 @@ function DashboardContent() {
   ];
 
   if (totalIncome > 0 || profile) {
-     // 1. Savings/Emergency (Max 20)
-     const monthlyAvg = totalExpense || 50000;
+     // 1. Savings Rate (New Priority Dimension - Max 25)
+     const monthlySavings = Math.max(0, totalIncome - totalExpense);
+     const savingsRate = totalIncome > 0 ? (monthlySavings / totalIncome) * 100 : 0;
+     const savingsScore = Math.min(25, (savingsRate / 50) * 25); // 50% savings rate = 25 pts
+     
+     // 2. Emergency Fund (Max 15)
+     const ninetyDaysAgo = new Date();
+     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+     const expensesLast90Days = transactions
+       .filter(t => t.type === 'expense' && new Date(t.date) >= ninetyDaysAgo)
+       .reduce((sum, t) => sum + Number(t.amount), 0);
+     const monthlyAvg = Math.max(1, expensesLast90Days / 3);
+
      const emergencyMonths = (profile?.emergency_fund || 0) / monthlyAvg;
-     const emergencyScore = Math.min(20, (emergencyMonths / 6) * 20);
-     dimensions[0].score = Math.round(emergencyScore);
-
-     // 2. Insurance (Mocked/Simplified for now - Max 15)
+     const emergencyScore = Math.min(15, (emergencyMonths / 6) * 15);
+     
+     // 3. Insurance (Max 15)
      const insuranceScore = profile?.assets > 0 ? 15 : 5; 
-     dimensions[1].score = insuranceScore;
 
-     // 3. Investments (Max 15)
+     // 4. Investments (Max 15)
      const investmentScore = profile?.risk_profile === 'aggressive' || profile?.risk_profile === 'moderate' ? 15 : 8;
-     dimensions[3].score = investmentScore; // wait, index 2 is investments
 
-     // Let's fix index
-     dimensions[2].score = investmentScore;
-
-     // 4. Debt (Max 20)
-     let debtScore = 20;
+     // 5. Debt Health (Max 15)
+     let debtScore = 15;
      if (profile?.assets && profile.assets > 0) {
         const debtRatio = profile.debt / profile.assets;
-        debtScore = Math.max(0, 20 - (debtRatio * 20));
+        debtScore = Math.max(0, 15 - (debtRatio * 15));
      } else if (profile?.debt > 0) {
         debtScore = 0;
      }
-     dimensions[3].score = Math.round(debtScore);
 
-     // 5. Tax (Max 15)
-     const taxScore = 12; // Placeholder
-     dimensions[4].score = taxScore;
+     // 6. Tax & Retirement (Max 15 combined)
+     const taxScore = 8;
+     const retirementScore = 7;
 
-     // 6. Retirement (Max 15)
-     const retirementScore = 10; // Placeholder
-     dimensions[5].score = retirementScore;
+     dimensions = [
+       { name: 'Savings Rate', score: Math.round(savingsScore), icon: TrendingUp, color: 'text-emerald-500' },
+       { name: 'Emergency', score: Math.round(emergencyScore), icon: ShieldCheck, color: 'text-red-500' },
+       { name: 'Investments', score: investmentScore, icon: Zap, color: 'text-purple-500' },
+       { name: 'Debt Health', score: Math.round(debtScore), icon: Scale, color: 'text-slate-500' },
+       { name: 'Insurance', score: insuranceScore, icon: HeartPulse, color: 'text-indigo-500' },
+       { name: 'Retirement', score: retirementScore, icon: Target, color: 'text-orange-500' },
+     ];
 
      healthScore = dimensions.reduce((sum, d) => sum + d.score, 0);
   }
@@ -181,29 +200,45 @@ function DashboardContent() {
               </div>
               <div>
                 <div className="text-4xl font-black text-foreground tracking-tight">₹{totalExpense.toLocaleString()}</div>
-                <div className="text-sm font-bold text-muted-foreground mt-2">Total cash out</div>
+                <div className="text-sm font-bold text-muted-foreground mt-2">Spent this month</div>
               </div>
             </div>
             
             <div className="bg-card rounded-[2rem] p-8 border border-border shadow-sm flex flex-col justify-between h-48 hover:shadow-md transition-shadow">
                <div className="flex justify-between items-center text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                Total Income
+                Monthly Income
                 <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-md"><TrendingUp className="w-5 h-5" /></div>
               </div>
               <div>
                 <div className="text-4xl font-black text-foreground tracking-tight">₹{totalIncome.toLocaleString()}</div>
-                <div className="text-sm font-bold text-muted-foreground mt-2">Total cash in</div>
+                <div className="text-sm font-bold text-muted-foreground mt-2">Earned this month</div>
               </div>
             </div>
 
-            <div className="bg-card rounded-lg p-8 border border-border shadow-sm flex flex-col justify-between h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-pointer" onClick={() => setShowWizard(true)}>
+            <div className={`bg-card rounded-lg p-8 border border-border shadow-sm flex flex-col justify-between h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-pointer ${calculatingHealth ? 'opacity-70 scale-[0.99]' : ''}`} onClick={() => setShowWizard(true)}>
               <div className="absolute top-0 left-0 w-1.5 bg-gradient-to-b from-purple-500 to-indigo-500 h-full"></div>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">AI Health Score</div>
-                <div className="bg-purple-500/10 text-purple-500 p-2.5 rounded-md"><Sparkles className="w-5 h-5" /></div>
+                <div className={`bg-purple-500/10 text-purple-500 p-2.5 rounded-md ${calculatingHealth ? 'animate-spin' : 'group-hover:animate-bounce'} transition-all`}>
+                  {calculatingHealth ? <Zap className="w-5 h-5 fill-purple-500" /> : <Sparkles className="w-5 h-5" />}
+                </div>
               </div>
-              <div>
-                <div className="text-4xl font-black text-foreground tracking-tight">{healthScore} <span className="text-lg text-muted-foreground font-bold">{healthScore !== 'N/A' && '/ 100'}</span></div>
+              <div className="mt-1">
+                {calculatingHealth ? (
+                   <div className="text-sm font-bold text-purple-500 flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                      Analyzing data...
+                   </div>
+                ) : (
+                   <div className="flex flex-col">
+                      <div className="text-4xl font-black text-foreground tracking-tight">{healthScore} <span className="text-lg text-muted-foreground font-bold">{healthScore !== 'N/A' && '/ 100'}</span></div>
+                      {typeof healthScore === 'number' && healthScore < 70 && (
+                         <div className="mt-2 text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full inline-block w-fit">
+                            Coach Prompt: Set Emergency Fund in Wizard (+15 pts)
+                         </div>
+                      )}
+                   </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, ShieldCheck, HeartPulse, Scale, TrendingUp, Users, ChevronRight, ChevronLeft, CheckCircle2, IndianRupee, ShieldAlert, Zap, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import toast from 'react-hot-toast';
@@ -28,6 +28,23 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
     current_age: 30,
   });
 
+  useEffect(() => {
+    async function fetchExistingProfile() {
+      const { data: pData } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (pData) {
+        // Reverse engineer the scores back to inputs for the wizard
+        setData(prev => ({
+          ...prev,
+          emergency_months: Math.round((pData.emergency_fund || 0) / Math.max(1, pData.monthly_income || 50000)),
+          risk_profile: pData.risk_profile,
+          monthly_income: pData.monthly_income || 0,
+          monthly_debt_emi: Math.round((pData.debt || 0) / 12),
+        }));
+      }
+    }
+    fetchExistingProfile();
+  }, [userId]);
+
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
@@ -44,7 +61,7 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
         emergency_fund: data.emergency_months * (data.monthly_income * 0.7), // rough estimate
         debt: data.monthly_debt_emi * 12, // rough estimation for health score
         risk_profile: data.asset_breakdown === 'stocks' || data.asset_breakdown === 'mix' ? 'aggressive' : 'moderate',
-        // We could use a metadata column if available, or just use these to calculate the score on the fly
+        monthly_income: data.monthly_income,
       }).eq('id', userId);
 
       if (error) throw error;
