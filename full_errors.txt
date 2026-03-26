@@ -1,0 +1,3 @@
+scripts/confirm-user.ts(1,30): error TS2307: Cannot find module '@supabase/supabase-js' or its corresponding type declarations.
+scripts/confirm-user.ts(28,27): error TS7006: Parameter 'u' implicitly has an 'any' type.
+src/app/dashboard/profile/page.tsx(203,56): error TS18047: 'user' is possibly 'null'.

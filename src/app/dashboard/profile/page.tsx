@@ -51,13 +51,13 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async () => {
-     if (!user) return;
+     if (!user || !profile) return;
      setLoading(true);
      try {
        await updateProfile(user.uid, {
-         assets: profile.assets,
-         debt: profile.debt,
-         emergency_fund: profile.emergency_fund,
+         assets: profile?.assets || 0,
+         debt: profile?.debt || 0,
+         emergency_fund: profile?.emergency_fund || 0,
          risk_profile: getRiskCategory(quizScore)
        });
        toast.success("Wealth Profile saved!");
@@ -200,6 +200,10 @@ export default function ProfilePage() {
                                  setLoading(true);
                                  // Simple Mock Sync: Update household_id to the provided one
                                  try {
+                                   if (!user) {
+                                     toast.error('You must be logged in');
+                                     return;
+                                   }
                                    await updateProfile(user.uid, { household_id: idInput });
                                    toast.success('Household Synchronized!');
                                    fetchProfile();
@@ -235,7 +239,7 @@ export default function ProfilePage() {
                   </div>
               </div>
            </div>
-           {profile.household_id && user && <JointOptimizer householdId={profile.household_id} currentUserId={user.uid} />}
+            {profile && profile.household_id && user && <JointOptimizer householdId={profile.household_id} currentUserId={user.uid} />}
         </div>
       </main>
     </div>

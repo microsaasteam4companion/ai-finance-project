@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity, Menu } from 'lucide-react';
@@ -11,7 +11,7 @@ import Script from 'next/script';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
 
-export default function BillingPage() {
+function BillingContent() {
   const { user, loading: authLoading, tier, refreshTier } = useAuth();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -197,5 +197,17 @@ export default function BillingPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-pulse w-12 h-12 bg-indigo-200 rounded-full" />
+      </div>
+    }>
+      <BillingContent />
+    </Suspense>
   );
 }
