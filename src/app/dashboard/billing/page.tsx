@@ -100,9 +100,21 @@ function BillingContent() {
     router.push('/login');
   };
 
-  if (authLoading || !user || !mounted) {
-    return <div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>;
+  const isSuccessRedirect = searchParams.get('status') === 'succeeded';
+
+  if (!mounted || ((authLoading || !user) && !isSuccessRedirect)) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50 items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-500 font-medium animate-pulse">
+          {isSuccessRedirect ? 'Finalizing your premium upgrade...' : 'Loading account details...'}
+        </p>
+      </div>
+    );
   }
+
+  // Final safety check for TS
+  if (!user) return null;
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
