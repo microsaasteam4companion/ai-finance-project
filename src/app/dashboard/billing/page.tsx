@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ import Script from 'next/script';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
 
-function BillingContent() {
+export default function BillingPage() {
   const { user, loading: authLoading, tier, refreshTier } = useAuth();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -100,21 +100,9 @@ function BillingContent() {
     router.push('/login');
   };
 
-  const isSuccessRedirect = searchParams.get('status') === 'succeeded';
-
-  if (!mounted || ((authLoading || !user) && !isSuccessRedirect)) {
-    return (
-      <div className="flex flex-col h-screen bg-slate-50 items-center justify-center gap-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-500 font-medium animate-pulse">
-          {isSuccessRedirect ? 'Finalizing your premium upgrade...' : 'Loading account details...'}
-        </p>
-      </div>
-    );
+  if (authLoading || !user || !mounted) {
+    return <div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>;
   }
-
-  // Final safety check for TS
-  if (!user) return null;
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
@@ -207,13 +195,5 @@ function BillingContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-export default function BillingPage() {
-  return (
-    <Suspense fallback={<div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>}>
-      <BillingContent />
-    </Suspense>
   );
 }

@@ -14,14 +14,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
 
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
-    const returnBaseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
-
     const session = await client.checkoutSessions.create({
       product_cart: [{ product_id: 'pdt_0NbH8qheEqFDGTInPAlTP', quantity: 1 }],
       customer: { email },
       metadata: { user_id: userId },
-      return_url: `${returnBaseUrl}/dashboard/billing`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`,
     });
 
     return NextResponse.json({ checkout_url: session.checkout_url });
