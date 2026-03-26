@@ -9,8 +9,9 @@ import toast from 'react-hot-toast';
 import Script from 'next/script';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
+import { Suspense } from 'react';
 
-export default function BillingPage() {
+function BillingContent() {
   const { user, loading: authLoading, tier, refreshTier } = useAuth();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -195,5 +196,13 @@ export default function BillingPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen bg-slate-50 items-center justify-center"><Loader2 className="w-12 h-12 text-indigo-500 animate-spin" /></div>}>
+       <BillingContent />
+    </Suspense>
   );
 }
