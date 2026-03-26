@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, ShieldCheck, HeartPulse, Scale, TrendingUp, Users, ChevronRight, ChevronLeft, CheckCircle2, IndianRupee, ShieldAlert, Zap, Target } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { getProfile, updateProfile } from '@/lib/db';
 import toast from 'react-hot-toast';
 
 interface HealthScoreWizardProps {
@@ -30,16 +30,19 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
 
   useEffect(() => {
     async function fetchExistingProfile() {
-      const { data: pData } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (pData) {
-        // Reverse engineer the scores back to inputs for the wizard
-        setData(prev => ({
-          ...prev,
-          emergency_months: Math.round((pData.emergency_fund || 0) / Math.max(1, pData.monthly_income || 50000)),
-          risk_profile: pData.risk_profile,
-          monthly_income: pData.monthly_income || 0,
-          monthly_debt_emi: Math.round((pData.debt || 0) / 12),
-        }));
+      try {
+        const pData: any = await getProfile(userId);
+        if (pData) {
+          // Reverse engineer the scores back to inputs for the wizard
+          setData(prev => ({
+            ...prev,
+            emergency_months: Math.round((pData.emergency_fund || 0) / Math.max(1, pData.monthly_income || 50000)),
+            monthly_income: pData.monthly_income || 0,
+            monthly_debt_emi: Math.round((pData.debt || 0) / 12),
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
       }
     }
     fetchExistingProfile();
@@ -52,19 +55,15 @@ export default function HealthScoreWizard({ onClose, onComplete, userId }: Healt
     setLoading(true);
     try {
       // Calculate derived metrics
-      const debtToIncome = data.monthly_income > 0 ? (data.monthly_debt_emi / data.monthly_income) * 100 : 0;
+      // const debtToIncome = data.monthly_income > 0 ? (data.monthly_debt_emi / data.monthly_income) * 100 : 0;
       
-      // Update profile in Supabase
-      // Note: We use existing fields and could add new ones if schema allows.
-      // For now, we'll store the high-level metrics.
-      const { error } = await supabase.from('profiles').update({
+      // Update profile in Firestore
+      await updateProfile(userId, {
         emergency_fund: data.emergency_months * (data.monthly_income * 0.7), // rough estimate
         debt: data.monthly_debt_emi * 12, // rough estimation for health score
         risk_profile: data.asset_breakdown === 'stocks' || data.asset_breakdown === 'mix' ? 'aggressive' : 'moderate',
         monthly_income: data.monthly_income,
-      }).eq('id', userId);
-
-      if (error) throw error;
+      });
 
       toast.success('Financial Wellness Profile Updated!');
       onComplete();

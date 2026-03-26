@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Groq } from 'groq-sdk';
-import { supabase } from '@/lib/supabaseClient';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -12,9 +12,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Sync required' }, { status: 400 });
     }
 
-    // Fetch both profiles
-    const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    const { data: partnerProfile } = await supabase.from('profiles').select('*').eq('id', partnerId).single();
+    // Fetch both profiles from Firestore
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const partnerDoc = await adminDb.collection('users').doc(partnerId).get();
+
+    const userProfile = userDoc.data();
+    const partnerProfile = partnerDoc.data();
 
     if (!userProfile || !partnerProfile) {
       return NextResponse.json({ error: 'Profiles not found' }, { status: 404 });

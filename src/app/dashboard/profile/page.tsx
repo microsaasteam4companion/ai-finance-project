@@ -3,7 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getProfile, updateProfile } from '@/lib/db';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UserPlus, Scale, TrendingUp, ShieldCheck, AlertTriangle, Users, CreditCard, Lock, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from '@/components/Sidebar';
@@ -29,36 +31,41 @@ export default function ProfilePage() {
   }, [user, authLoading]);
 
   const fetchProfile = async () => {
+    if (!user) return;
      setLoading(true);
-     // Try to fetch profile
-     const { data, error } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
-     if (data) {
-        setProfile(data);
-     } else {
-        // If no profile exists, create a default one natively
-        const defaultProfile = { id: user?.id, assets: 0, debt: 0, emergency_fund: 0, risk_profile: 'moderate' };
-        await supabase.from('profiles').insert([defaultProfile]);
-        const { data: newData } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
-        if (newData) setProfile(newData);
+     try {
+       // Try to fetch profile
+       const data = await getProfile(user.uid);
+       if (data) {
+          setProfile(data);
+       } else {
+          // If no profile exists, create a default one
+          const defaultProfile = { id: user.uid, assets: 0, debt: 0, emergency_fund: 0, risk_profile: 'moderate', household_id: crypto.randomUUID() };
+          await updateProfile(user.uid, defaultProfile);
+          setProfile(defaultProfile);
+       }
+     } catch (error) {
+       console.error('Error fetching profile:', error);
      }
      setLoading(false);
   };
 
   const handleSaveProfile = async () => {
+     if (!user) return;
      setLoading(true);
-     const { error } = await supabase.from('profiles').update({
-        assets: profile.assets,
-        debt: profile.debt,
-        emergency_fund: profile.emergency_fund,
-        risk_profile: getRiskCategory(quizScore)
-     }).eq('id', user?.id);
-     setLoading(false);
-     
-     if (error) toast.error("Failed to save profile: " + error.message);
-     else {
-        toast.success("Wealth Profile saved!");
-        fetchProfile();
+     try {
+       await updateProfile(user.uid, {
+         assets: profile.assets,
+         debt: profile.debt,
+         emergency_fund: profile.emergency_fund,
+         risk_profile: getRiskCategory(quizScore)
+       });
+       toast.success("Wealth Profile saved!");
+       fetchProfile();
+     } catch (error: any) {
+       toast.error("Failed to save profile: " + error.message);
      }
+     setLoading(false);
   };
 
   const getRiskCategory = (score: number) => {
@@ -68,7 +75,7 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -191,15 +198,15 @@ export default function ProfilePage() {
                                  if (!idInput) return toast.error('Please enter an ID');
                                  
                                  setLoading(true);
-                                 // Simple Mock Sync: Update household_id to the provided one (in real world requires validation/confirmation)
-                                 const { error } = await supabase.from('profiles').update({ household_id: idInput }).eq('id', user?.id);
-                                 setLoading(false);
-                                 
-                                 if (error) toast.error('Sync failed: ' + error.message);
-                                 else {
-                                    toast.success('Household Synchronized!');
-                                    fetchProfile();
+                                 // Simple Mock Sync: Update household_id to the provided one
+                                 try {
+                                   await updateProfile(user.uid, { household_id: idInput });
+                                   toast.success('Household Synchronized!');
+                                   fetchProfile();
+                                 } catch (error: any) {
+                                   toast.error('Sync failed: ' + error.message);
                                  }
+                                 setLoading(false);
                               }}
                            >
                               SYNC
@@ -219,7 +226,7 @@ export default function ProfilePage() {
                            <button className="text-[10px] font-black uppercase text-rose-200 bg-rose-900/40 px-3 py-1.5 rounded-lg hover:bg-rose-900/60 transition-colors" onClick={async () => {
                               if (!confirm('Disconnect from Household?')) return;
                               const newId = crypto.randomUUID();
-                              await supabase.from('profiles').update({ household_id: newId }).eq('id', user?.id);
+                              await updateProfile(user?.uid || '', { household_id: newId });
                               fetchProfile();
                               toast.success('Disconnected');
                            }}>RESET</button>
@@ -228,7 +235,7 @@ export default function ProfilePage() {
                   </div>
               </div>
            </div>
-           {profile.household_id && user && <JointOptimizer householdId={profile.household_id} currentUserId={user.id} />}
+           {profile.household_id && user && <JointOptimizer householdId={profile.household_id} currentUserId={user.uid} />}
         </div>
       </main>
     </div>

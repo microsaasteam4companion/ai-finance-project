@@ -3,15 +3,15 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { Check, Shield, Zap, Sparkles, AlertTriangle, ArrowRight, Loader2, CreditCard, User, LogOut, Home, PieChart, Activity, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Script from 'next/script';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
-import { Suspense } from 'react';
 
-function BillingContent() {
+export default function BillingPage() {
   const { user, loading: authLoading, tier, refreshTier } = useAuth();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,12 +33,13 @@ function BillingContent() {
        toast.success('Payment detected! Finalizing your upgrade...', { id: toastId, duration: 2000 });
        
        const verifyAndRefresh = async () => {
+          if (!user) return false;
           try {
              // Direct verification call
              const res = await fetch('/api/dodo/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId, userId: user?.id })
+                body: JSON.stringify({ paymentId, userId: user.uid })
              });
              const data = await res.json();
              
@@ -83,7 +84,7 @@ function BillingContent() {
       const response = await fetch('/api/dodo/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, email: user.email }),
+        body: JSON.stringify({ userId: user.uid, email: user.email }),
       });
       
       const data = await response.json();
@@ -97,7 +98,7 @@ function BillingContent() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -196,13 +197,5 @@ function BillingContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-export default function BillingPage() {
-  return (
-    <Suspense fallback={<div className="flex h-screen bg-slate-50 items-center justify-center"><Loader2 className="w-12 h-12 text-indigo-500 animate-spin" /></div>}>
-       <BillingContent />
-    </Suspense>
   );
 }

@@ -3,7 +3,8 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, TrendingUp, Target, Calculator, Lock, CreditCard, CheckCircle2, ShieldCheck, ArrowRight, ArrowDownRight, Menu } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Sidebar from '@/components/Sidebar';
@@ -28,7 +29,7 @@ export default function FirePlannerPage() {
   }, [user, authLoading, router]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 

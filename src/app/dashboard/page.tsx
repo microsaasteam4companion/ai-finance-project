@@ -3,8 +3,10 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Activity, User as UserIcon, Plus, Sparkles, TrendingDown, TrendingUp , CreditCard, HeartPulse, ShieldCheck, Zap, Target, Scale, CheckCircle2, Menu } from 'lucide-react';
+import { auth } from '@/lib/firebase';
+import { getTransactions, getProfile } from '@/lib/db';
+import { signOut } from 'firebase/auth';
+import { Activity, Plus, Sparkles, TrendingDown, TrendingUp , HeartPulse, ShieldCheck, Zap, Target, Scale } from 'lucide-react';
 import TransactionModal from '@/components/TransactionModal';
 import DashboardCharts from '@/components/DashboardCharts';
 import TransactionList from '@/components/TransactionList';
@@ -37,32 +39,29 @@ function DashboardContent() {
   }, [user, authLoading, router]);
 
   const fetchTransactions = async () => {
+    if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .order('date', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching transactions:', error);
-    } else {
+    
+    try {
+      const data = await getTransactions(user.uid);
       setTransactions(data || []);
+      
       // Trigger a short "AI Analyzing" state
       setCalculatingHealth(true);
       setTimeout(() => setCalculatingHealth(false), 800);
-    }
-    
-    // Fetch profile for proprietary health score
-    if (user) {
-       const { data: pData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-       if (pData) setProfile(pData);
+
+      // Fetch profile for proprietary health score
+      const pData = await getProfile(user.uid);
+      if (pData) setProfile(pData);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
     }
 
     setLoading(false);
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -163,11 +162,11 @@ function DashboardContent() {
                <Activity className="w-96 h-96" />
             </div>
             <div className="relative z-10 flex-1 min-w-0 text-center md:text-left">
-              <h2 className="text-2xl md:text-5xl font-black mb-2 md:mb-3 tracking-tight">Welcome back, {user?.user_metadata?.username || user?.email?.split('@')[0]}!</h2>
+              <h2 className="text-2xl md:text-5xl font-black mb-2 md:mb-3 tracking-tight">Welcome back, {user?.displayName || user?.email?.split('@')[0]}!</h2>
               <p className="text-indigo-100 max-w-xl text-sm md:text-lg font-medium opacity-90 leading-relaxed mx-auto md:mx-0">Your AI mentor is ready. Track expenses, analyze your spending, and reach financial freedom.</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6 relative z-10 w-full md:w-auto shrink-0 mt-2 md:mt-0 items-center">
-              <ReceiptScanner onScanComplete={(data) => {
+              <ReceiptScanner onScanComplete={(data: any) => {
                  setScanData(data);
                  setIsModalOpen(true);
               }} />
@@ -183,7 +182,7 @@ function DashboardContent() {
 
           {showWizard && (
              <HealthScoreWizard 
-                userId={user?.id || ''} 
+                userId={user?.uid || ''} 
                 onClose={() => setShowWizard(false)} 
                 onComplete={() => {
                    setShowWizard(false);

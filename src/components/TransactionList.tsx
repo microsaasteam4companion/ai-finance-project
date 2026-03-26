@@ -1,7 +1,8 @@
 'use client';
 
 import { Utensils, Home, Car, ShoppingBag, Coffee, ArrowUpCircle, HelpCircle, Edit2, Trash2, CreditCard, Banknote } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { deleteTransaction } from '@/lib/db';
+import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
 const categoryIcons: any = {
@@ -15,15 +16,18 @@ const categoryIcons: any = {
 };
 
 export default function TransactionList({ transactions, onEdit, onRefresh }: { transactions: any[], onEdit: (t: any) => void, onRefresh: () => void }) {
+  const { user } = useAuth();
   
   const handleDelete = async (id: string) => {
+    if (!user) return;
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) {
-      toast.error('Failed to delete: ' + error.message);
-    } else {
+    
+    try {
+      await deleteTransaction(user.uid, id);
       toast.success('Transaction deleted');
       onRefresh();
+    } catch (error: any) {
+      toast.error('Failed to delete: ' + error.message);
     }
   };
 

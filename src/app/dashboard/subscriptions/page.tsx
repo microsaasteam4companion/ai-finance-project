@@ -3,7 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getTransactions, updateTransaction } from '@/lib/db';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, HandCoins, AlertCircle, CalendarClock, Bot, Plus , CreditCard, Menu } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
@@ -23,72 +25,75 @@ export default function SubscriptionsPage() {
   }, [user, authLoading]);
 
   const fetchSubscriptions = async () => {
+    if (!user) return;
     setLoading(true);
-    // 1. Fetch user-flagged subscriptions
-    const { data: activeSubs } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('is_recurring', true)
-      .order('date', { ascending: false });
+    try {
+      const allTransactions = await getTransactions(user.uid);
       
-    // 2. Fetch all expenses to run auto-detection algorithm
-    const { data: allExpenses } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('type', 'expense');
+      // 1. Filter user-flagged subscriptions
+      const activeSubs = allTransactions
+        .filter(t => t.is_recurring === true)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+      // 2. Filter all expenses to run auto-detection algorithm
+      const allExpenses = allTransactions.filter(t => t.type === 'expense');
 
-    if (activeSubs) setSubscriptions(activeSubs);
+      setSubscriptions(activeSubs);
 
-    if (allExpenses && activeSubs) {
-       // Filter out already flagged items to avoid double detection
-       const flaggedIds = new Set(activeSubs.map((s: any) => s.id));
-       const uncheckedExpenses = allExpenses.filter((e: any) => !flaggedIds.has(e.id));
+      if (allExpenses && activeSubs) {
+         // Filter out already flagged items to avoid double detection
+         const flaggedIds = new Set(activeSubs.map((s: any) => s.id));
+         const uncheckedExpenses = allExpenses.filter((e: any) => !flaggedIds.has(e.id));
 
-       // Algorithm: Group by "category + amount"
-       const groups: any = {};
-       uncheckedExpenses.forEach((t: any) => {
-          const key = `${t.category.toLowerCase()}-${t.amount}`;
-          if (!groups[key]) groups[key] = [];
-          groups[key].push(t);
-       });
+         // Algorithm: Group by "category + amount"
+         const groups: any = {};
+         uncheckedExpenses.forEach((t: any) => {
+            const key = `${t.category?.toLowerCase()}-${t.amount}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(t);
+         });
 
-       const detected: any[] = [];
-       Object.values(groups).forEach((group: any) => {
-          if (group.length >= 2) {
-             // Sort by date descending
-             group.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-             const latest = group[0];
-             const previous = group[1];
-             
-             // Check if interval is roughly 1 month (25-35 days)
-             const daysDiff = Math.abs(new Date(latest.date).getTime() - new Date(previous.date).getTime()) / (1000 * 60 * 60 * 24);
-             
-             if (daysDiff >= 20 && daysDiff <= 40) {
-                 // Predict next payment date
-                 const nextDate = new Date(latest.date);
-                 nextDate.setDate(nextDate.getDate() + 30);
-                 
-                 detected.push({
-                    ...latest,
-                    occurrence_count: group.length,
-                    next_payment_predicted: nextDate.toISOString().split('T')[0]
-                 });
-             }
-          }
-       });
-       setDetectedSubs(detected);
+         const detected: any[] = [];
+         Object.values(groups).forEach((group: any) => {
+            if (group.length >= 2) {
+               // Sort by date descending
+               group.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+               const latest = group[0];
+               const previous = group[1];
+               
+               // Check if interval is roughly 1 month (25-35 days)
+               const daysDiff = Math.abs(new Date(latest.date).getTime() - new Date(previous.date).getTime()) / (1000 * 60 * 60 * 24);
+               
+               if (daysDiff >= 20 && daysDiff <= 40) {
+                   // Predict next payment date
+                   const nextDate = new Date(latest.date);
+                   nextDate.setDate(nextDate.getDate() + 30);
+                   
+                   detected.push({
+                      ...latest,
+                      occurrence_count: group.length,
+                      next_payment_predicted: nextDate.toISOString().split('T')[0]
+                   });
+               }
+            }
+         });
+         setDetectedSubs(detected);
+      }
+    } catch (error) {
+      console.error('Error fetching subscriptions:', error);
     }
     
     setLoading(false);
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
   const handleConfirmDetection = async (sub: any) => {
-     await supabase.from('transactions').update({ is_recurring: true }).eq('id', sub.id);
+     if (!user) return;
+     await updateTransaction(user.uid, sub.id, { is_recurring: true });
      fetchSubscriptions();
   };
 

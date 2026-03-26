@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Groq } from 'groq-sdk';
 import { verifyPremiumStatus } from '@/lib/premiumVerify';
 import { extractTextFromPDF } from '@/lib/pdfService';
-import { supabase } from '@/lib/supabaseClient';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -40,8 +40,8 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'FinGenius Premium required to access CA Tax Wizard.' }, { status: 403 });
     }
 
-    const { data: profile } = await supabase.from('profiles').select('risk_profile').eq('id', userId).single();
-    const riskProfile = profile?.risk_profile || 'moderate';
+    const profileDoc = await adminDb.collection('users').doc(userId).get();
+    const riskProfile = profileDoc.data()?.risk_profile || 'moderate';
 
     const prompt = `
 You are an expert Indian Chartered Accountant (CA) AI.

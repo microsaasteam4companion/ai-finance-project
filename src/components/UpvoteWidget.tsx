@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import Script from 'next/script';
 
 export default function UpvoteWidget() {
   const { user } = useAuth();
-  const userId = user?.id;
+  const userId = user?.uid;
   const email = user?.email;
   
   const [remountKey, setRemountKey] = useState(0);
@@ -33,9 +34,9 @@ export default function UpvoteWidget() {
            data-product-overview="FinGenius - AI Personal Finance Mentor" 
            data-about-text="Help us build the ultimate financial assistant."
            // @ts-ignore
-           data-faqs='[{"question":"Is my data secure?","answer":"Yes, we use Supabase with bank-grade encryption."},{"question":"How is the health score calculated?","answer":"It uses our proprietary algorithm across 6 financial dimensions."}]'>
+           data-faqs='[{"question":"Is my data secure?","answer":"Yes, we use Google Firebase with bank-grade encryption."},{"question":"How is the health score calculated?","answer":"It uses our proprietary algorithm across 6 financial dimensions."}]'>
       </div>
-      <script src="https://upvote.entrext.com/widget.js" async />
+      <Script src="https://upvote.entrext.com/widget.js" />
     </div>
   );
 }

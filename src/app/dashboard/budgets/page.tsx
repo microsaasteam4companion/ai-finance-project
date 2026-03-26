@@ -3,7 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getBudgets, setBudget, getTransactions } from '@/lib/db';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { Home, PieChart, Activity, User as UserIcon, Plus, Target, Wallet, ArrowUpRight, ArrowDownRight, CreditCard, AlertCircle, Menu } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
@@ -28,27 +30,31 @@ export default function BudgetsPage() {
   }, [user, authLoading]);
 
   const fetchData = async () => {
+    if (!user) return;
     setLoading(true);
-    // Fetch budgets
-    const { data: bData } = await supabase.from('budgets').select('*');
-    if (bData) setBudgets(bData);
+    try {
+      // Fetch budgets
+      const bData = await getBudgets(user.uid);
+      if (bData) setBudgets(bData);
 
-    // Fetch this month's transactions
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    const { data: tData } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('type', 'expense')
-      .gte('date', startOfMonth.toISOString().split('T')[0]);
+      // Fetch this month's transactions
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0,0,0,0);
+      
+      const tData = await getTransactions(user.uid);
+      const filtered = tData.filter(t => t.type === 'expense' && new Date(t.date) >= startOfMonth);
 
-    if (tData) {
-      const spend = tData.reduce((acc: any, t) => {
-        const cat = t.category.toLowerCase();
-        acc[cat] = (acc[cat] || 0) + Number(t.amount);
-        return acc;
-      }, {});
-      setCurrentSpend(spend);
+      if (filtered) {
+        const spend = filtered.reduce((acc: any, t) => {
+          const cat = t.category.toLowerCase();
+          acc[cat] = (acc[cat] || 0) + Number(t.amount);
+          return acc;
+        }, {});
+        setCurrentSpend(spend);
+      }
+    } catch (error) {
+      console.error('Error fetching budgets:', error);
     }
     setLoading(false);
   };
@@ -56,15 +62,19 @@ export default function BudgetsPage() {
   const handleAddBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    await supabase.from('budgets').insert([{ user_id: user.id, category, limit_amount: parseFloat(limit) }]);
-    setShowAdd(false);
-    setCategory('');
-    setLimit('');
-    fetchData();
+    try {
+      await setBudget(user.uid, category.toLowerCase(), parseFloat(limit));
+      setShowAdd(false);
+      setCategory('');
+      setLimit('');
+      fetchData();
+    } catch (error) {
+      console.error('Error adding budget:', error);
+    }
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 

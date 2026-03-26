@@ -1,13 +1,12 @@
-import { supabaseServer } from '@/lib/supabaseServer';
+import { adminDb } from '@/lib/firebaseAdmin';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const signature = req.headers.get('x-dodo-signature'); // Verify if Dodo uses this header
+    const signature = req.headers.get('x-dodo-signature');
 
-    // In a production app, you MUST verify the signature here
-    // For now, we trust the payload but log it
+    // In a production app, verify the signature
     console.log('Dodo Webhook received:', payload);
 
     const eventType = payload.type;
@@ -19,26 +18,20 @@ export async function POST(req: Request) {
        
        // Fallback to email lookup if userId is missing
        if (!targetUserId && customerEmail) {
-          const { data: profile } = await supabaseServer
-            .from('profiles')
-            .select('id')
-            .eq('email', customerEmail)
-            .single();
-          if (profile) targetUserId = profile.id;
+          const snapshot = await adminDb.collection('users').where('email', '==', customerEmail).limit(1).get();
+          if (!snapshot.empty) targetUserId = snapshot.docs[0].id;
        }
 
        if (targetUserId) {
-          const { error } = await supabaseServer
-            .from('profiles')
-            .update({ tier: 'premium' })
-            .eq('id', targetUserId);
-          
-          if (error) {
-             console.error('Error updating user tier via Dodo webhook:', error);
-             return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
+          try {
+            await adminDb.collection('users').doc(targetUserId).update({
+              tier: 'premium'
+            });
+            return NextResponse.json({ success: true, message: 'Tier updated to premium' });
+          } catch (error) {
+            console.error('Error updating user tier via Dodo webhook:', error);
+            return NextResponse.json({ error: 'Firestore update failed' }, { status: 500 });
           }
-          
-          return NextResponse.json({ success: true, message: 'Tier updated to premium' });
        }
     }
 

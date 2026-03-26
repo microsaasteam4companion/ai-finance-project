@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth";
+import { updateProfile } from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Loader2, TrendingUp, Sparkles, BrainCircuit, User } from 'lucide-react';
 
@@ -14,52 +19,54 @@ export default function LoginPage() {
   
   const router = useRouter();
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const loginIdentifier = email.includes('@') ? email : `${email.toLowerCase().trim()}@fingenius.ai`;
-
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email: loginIdentifier, password });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-      router.push('/dashboard?auth=success');
-    } else {
-      // Server-side signup to bypass email confirmation
+    const handleAuth = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError(null);
+  
+      // Sanitize username: lowercase and remove all spaces/special chars for the internal email
+      const sanitizedUsername = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      const loginIdentifier = email.includes('@') ? email : `${sanitizedUsername}@fingenius.ai`;
+  
       try {
-        const res = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: email, password })
-        });
-        const data = await res.json();
-        
-        if (data.error) {
-          setError(data.error);
+        if (isLogin) {
+          await signInWithEmailAndPassword(auth, loginIdentifier, password);
+          router.push('/dashboard?auth=success');
         } else {
-          // Auto-login after successful signup
-          const { error: loginError } = await supabase.auth.signInWithPassword({ 
-            email: loginIdentifier, 
-            password 
+          // Use our custom Signup API for registration
+          const res = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: email, password }),
           });
-          if (loginError) {
-            setError('Account created, but auto-login failed. Please sign in manually.');
-          } else {
-            router.push('/dashboard?auth=success');
+  
+          const data = await res.json();
+  
+          if (!res.ok) {
+            throw new Error(data.error || 'Signup failed');
           }
+  
+          // After successful signup via API, sign in on the client
+          await signInWithEmailAndPassword(auth, loginIdentifier, password);
+          router.push('/dashboard?auth=success');
         }
-      } catch (err) {
-        setError('Signup failed. Please try again.');
+      } catch (err: any) {
+        console.error("Auth error:", err);
+        let message = err.message || 'Authentication failed.';
+        if (message.includes('auth/invalid-email')) {
+          message = 'Invalid username format. Try using only letters and numbers.';
+        } else if (message.includes('auth/user-not-found')) {
+          message = 'User not found. Try signing up instead.';
+        } else if (message.includes('auth/wrong-password')) {
+          message = 'Incorrect password.';
+        } else if (message.includes('auth/email-already-in-use')) {
+          message = 'This username is already taken.';
+        }
+        setError(message);
+      } finally {
+        setLoading(false);
       }
-    }
-    
-    setLoading(false);
-  };
+    };
 
   return (
     <div className="flex min-h-screen bg-slate-50 relative overflow-hidden">

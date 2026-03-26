@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { addTransaction, updateTransaction, getBudgetByCategory, getTransactions } from '@/lib/db';
 import { X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -47,7 +47,6 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
     
     setLoading(true);
     const payload = {
-      user_id: user.id,
       amount: parseFloat(amount),
       type,
       category,
@@ -56,42 +55,46 @@ export default function TransactionModal({ isOpen, onClose, onSuccess, initialDa
       is_recurring: isRecurring
     };
 
-    let error;
-    if (editingId) {
-       const res = await supabase.from('transactions').update(payload).eq('id', editingId);
-       error = res.error;
-    } else {
-       const res = await supabase.from('transactions').insert([payload]);
-       error = res.error;
-    }
+    try {
+      if (editingId) {
+        await updateTransaction(user.uid, editingId, payload);
+      } else {
+        await addTransaction(user.uid, payload);
+      }
 
-    setLoading(false);
-    if (!error) {
-       toast.success('Transaction saved successfully!');
+      toast.success('Transaction saved successfully!');
        
-       if (type === 'expense') {
-          // Budget threshold check (case-insensitive)
-          const { data: bData } = await supabase.from('budgets').select('*').ilike('category', category).eq('user_id', user.id).maybeSingle();
-          if (bData) {
-             const startOfMonth = new Date(); startOfMonth.setDate(1);
-             const { data: tData } = await supabase.from('transactions').select('amount, category').eq('type', 'expense').ilike('category', category).gte('date', startOfMonth.toISOString().split('T')[0]);
-             if (tData) {
-                const total = tData.reduce((sum, t) => sum + Number(t.amount), 0);
-                if (total > bData.limit_amount) {
-                   toast.error(`Warning: You have exceeded your ${category} budget of ₹${bData.limit_amount}!`, { duration: 5000 });
-                } else if (total > bData.limit_amount * 0.8) {
-                   toast.error(`Heads up: You've used over 80% of your ${category} budget!`, { duration: 5000, icon: '⚠️' });
-                }
-             }
-          }
-       }
+      if (type === 'expense') {
+        const bData: any = await getBudgetByCategory(user.uid, category);
+        if (bData) {
+          const startOfMonth = new Date(); 
+          startOfMonth.setDate(1);
+          startOfMonth.setHours(0,0,0,0);
+          
+          const transactions = await getTransactions(user.uid);
+          const currentMonthTransactions = transactions.filter(t => 
+            new Date(t.date) >= startOfMonth && 
+            t.type === 'expense' && 
+            t.category?.toLowerCase() === category.toLowerCase()
+          );
 
-       setAmount('');
-       setCategory('');
-       onSuccess();
-       onClose();
-    } else {
-       toast.error(error.message);
+          const total = currentMonthTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+          if (total > bData.limit_amount) {
+            toast.error(`Warning: You have exceeded your ${category} budget of ₹${bData.limit_amount}!`, { duration: 5000 });
+          } else if (total > bData.limit_amount * 0.8) {
+            toast.error(`Heads up: You've used over 80% of your ${category} budget!`, { duration: 5000, icon: '⚠️' });
+          }
+        }
+      }
+
+      setAmount('');
+      setCategory('');
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save transaction');
+    } finally {
+      setLoading(false);
     }
   };
 

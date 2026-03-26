@@ -3,7 +3,8 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UploadCloud, FileText, LayoutDashboard, Crosshair, BarChart3, AlertCircle, TrendingUp, Loader2, IndianRupee, Lock, CreditCard, ArrowRight, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tesseract from 'tesseract.js';
@@ -25,7 +26,7 @@ export default function PortfolioXrayPage() {
   }, [user, authLoading]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -46,7 +47,7 @@ export default function PortfolioXrayPage() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('userId', user?.id || '');
+        formData.append('userId', user?.uid || '');
 
         const analysisRes = await fetch('/api/portfolio', {
           method: 'POST',
@@ -70,7 +71,7 @@ export default function PortfolioXrayPage() {
         const analysisRes = await fetch('/api/portfolio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, userId: user?.id })
+          body: JSON.stringify({ text, userId: user?.uid })
         });
         
         const data = await analysisRes.json();

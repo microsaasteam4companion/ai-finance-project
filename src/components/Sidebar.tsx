@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { Home, PieChart, Activity, Sparkles, TrendingUp, CreditCard, LogOut, User, Rocket, FileText, LayoutDashboard, Lock } from 'lucide-react';
 
 import { ThemeToggle } from './ThemeToggle';
@@ -18,7 +19,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 

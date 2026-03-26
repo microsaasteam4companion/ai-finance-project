@@ -1,4 +1,4 @@
-import { supabaseServer } from './supabaseServer';
+import { adminAuth, adminDb } from './firebaseAdmin';
 import { isEmailPremium } from './premiumConfig';
 
 /**
@@ -7,25 +7,21 @@ import { isEmailPremium } from './premiumConfig';
  */
 export async function verifyPremiumStatus(userId: string) {
   try {
-    // 1. Get user email and tier from database
-    const { data: profile, error } = await supabaseServer
-      .from('profiles')
-      .select('tier, id')
-      .eq('id', userId)
-      .single();
-
-    if (error || !profile) return false;
-
-    // 2. Check if user is in hardcoded whitelist
-    // We need the email from auth.users which is linked to profile.id
-    const { data: { user }, error: authError } = await supabaseServer.auth.admin.getUserById(userId);
+    // 1. Get user profile from Firestore
+    const profileDoc = await adminDb.collection('users').doc(userId).get();
     
-    if (!authError && user && isEmailPremium(user.email)) {
+    if (!profileDoc.exists) return false;
+    const profile = profileDoc.data();
+
+    // 2. Check if user is in hardcoded whitelist (via Auth email)
+    const user = await adminAuth.getUser(userId);
+    
+    if (user && user.email && isEmailPremium(user.email)) {
       return true;
     }
 
     // 3. Check database tier
-    return profile.tier === 'premium';
+    return profile?.tier === 'premium';
   } catch (err) {
     console.error('Error verifying premium status:', err);
     return false;

@@ -1,6 +1,6 @@
 import DodoPayments from 'dodopayments';
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabaseServer';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 const client = new DodoPayments({
   bearerToken: process.env['DODO_PAYMENTS_API_KEY'],
@@ -19,21 +19,19 @@ export async function POST(req: Request) {
     const payment = await client.payments.retrieve(paymentId);
 
     if (payment.status === 'succeeded') {
-       // Update user tier in Supabase
-       const targetUserId = userId || payment.metadata?.user_id;
+       // Update user tier in Firestore
+       const targetUserId = userId || (payment.metadata as any)?.user_id;
        
        if (targetUserId) {
-          const { error } = await supabaseServer
-            .from('profiles')
-            .update({ tier: 'premium' })
-            .eq('id', targetUserId);
-          
-          if (error) {
-             console.error('Error updating user tier via direct verification:', error);
-             return NextResponse.json({ error: 'DB update failed' }, { status: 500 });
+          try {
+            await adminDb.collection('users').doc(targetUserId).update({
+              tier: 'premium'
+            });
+            return NextResponse.json({ success: true, tier: 'premium' });
+          } catch (error) {
+            console.error('Error updating user tier via direct verification in Firestore:', error);
+            return NextResponse.json({ error: 'Firestore update failed' }, { status: 500 });
           }
-          
-          return NextResponse.json({ success: true, tier: 'premium' });
        } else {
           return NextResponse.json({ error: 'User ID not found in payment metadata' }, { status: 400 });
        }

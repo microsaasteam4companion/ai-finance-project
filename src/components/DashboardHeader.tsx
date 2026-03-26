@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { User as UserIcon, LogOut, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
@@ -20,7 +21,7 @@ export default function DashboardHeader({ title, subtitle, badge, onOpenSidebar 
   const [showMenu, setShowMenu] = useState(false);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -55,7 +56,7 @@ export default function DashboardHeader({ title, subtitle, badge, onOpenSidebar 
             onClick={() => setShowMenu(!showMenu)}
           >
             <div className="hidden md:block text-right">
-              <div className="text-sm font-bold text-foreground">{user?.user_metadata?.username || user?.email?.split('@')[0]}</div>
+              <div className="text-sm font-bold text-foreground">{user?.displayName || user?.email?.split('@')[0]}</div>
               <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Member</div>
             </div>
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground border border-border group-hover:border-indigo-200 dark:group-hover:border-indigo-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/30 transition-all">

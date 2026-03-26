@@ -3,7 +3,10 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getTransactions } from '@/lib/db';
+import { auth, db } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { LogOut, Home, PieChart, Activity, User as UserIcon, Sparkles, BrainCircuit, Loader2, CreditCard, Lock, IndianRupee, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from '@/components/Sidebar';
@@ -27,19 +30,19 @@ export default function CoachPage() {
   }, [user, authLoading, router]);
 
   const fetchTransactions = async () => {
-    const { data } = await supabase
-      .from('transactions')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(20);
-
-    if (data) {
-      setTransactions(data);
+    if (!user) return;
+    try {
+      const data = await getTransactions(user.uid);
+      if (data) {
+        setTransactions(data.slice(0, 20));
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
     }
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.push('/login');
   };
 
@@ -57,20 +60,22 @@ export default function CoachPage() {
         body: JSON.stringify({ 
           transactions: transactions.map(t => ({ amount: t.amount, category: t.category, date: t.date, type: t.type })),
           user_name: user?.email?.split('@')[0],
-          userId: user?.id,
+          userId: user?.uid,
           event
         }),
       });
-
+      
       const data = await response.json();
       if (data.advice) {
         setAdvice(data.advice);
-        // Optionally save to DB
-        await supabase.from('ai_advice').insert([{
-           user_id: user?.id,
-           type: event || 'insight',
-           content: data.advice
-        }]);
+        // Save to Firebase Firestore
+        if (user) {
+          await addDoc(collection(db, 'users', user.uid, 'ai_advice'), {
+            type: event || 'insight',
+            content: data.advice,
+            timestamp: serverTimestamp()
+          });
+        }
       } else {
         toast.error("Could not generate advice: " + data.error);
       }

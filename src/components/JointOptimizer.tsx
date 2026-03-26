@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getProfile, getPartner } from '@/lib/db';
 import { Users, TrendingUp, ShieldCheck, ArrowRight, IndianRupee, PieChart, Info, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,23 +27,15 @@ export default function JointOptimizer({ householdId, currentUserId }: { househo
 
   const fetchData = async () => {
     setLoading(true);
-    // Fetch partner
-    const { data: partnerData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('household_id', householdId)
-      .neq('id', currentUserId)
-      .single();
+    try {
+      const partnerData = await getPartner(householdId, currentUserId);
+      const userData = await getProfile(currentUserId);
 
-    // Fetch current user
-    const { data: userData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', currentUserId)
-      .single();
-
-    if (partnerData) setPartner(partnerData);
-    if (userData) setCurrentUser(userData);
+      if (partnerData) setPartner(partnerData);
+      if (userData) setCurrentUser(userData);
+    } catch (error) {
+      console.error('Error fetching joint data:', error);
+    }
     
     setLoading(false);
   };

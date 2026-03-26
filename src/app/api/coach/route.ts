@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Groq } from 'groq-sdk';
 
 import { verifyPremiumStatus } from '@/lib/premiumVerify';
-import { supabase } from '@/lib/supabaseClient';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -19,8 +19,9 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'FinGenius Premium required for AI Coaching.' }, { status: 403 });
     }
 
-    // Fetch full wealth profile
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    // Fetch full wealth profile from Firestore
+    const profileDoc = await adminDb.collection('users').doc(userId).get();
+    const profile = profileDoc.data();
     const { assets = 0, debt = 0, risk_profile = 'moderate', emergency_fund = 0 } = profile || {};
 
     let eventContext = '';

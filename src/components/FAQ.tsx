@@ -57,7 +57,7 @@ export default function FAQ() {
     },
     {
       question: "Is my financial data secure?",
-      answer: "Absolutely. We use bank-grade encryption and partner with Supabase for secure data storage. Your financial privacy is our top priority—we never sell your data and provide full control over what you share."
+      answer: "Absolutely. We use bank-grade encryption and partner with Google Firebase for secure data storage. Your financial privacy is our top priority—we never sell your data and provide full control over what you share."
     },
     {
       question: "How does the AI Tax Wizard work?",
