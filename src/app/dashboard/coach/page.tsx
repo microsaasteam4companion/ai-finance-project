@@ -4,9 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Activity, User as UserIcon, Sparkles, BrainCircuit, Loader2, CreditCard, Lock, IndianRupee } from 'lucide-react';
+import { LogOut, Home, PieChart, Activity, User as UserIcon, Sparkles, BrainCircuit, Loader2, CreditCard, Lock, IndianRupee, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function CoachPage() {
   const { user, loading: authLoading, tier } = useAuth();
@@ -15,6 +16,7 @@ export default function CoachPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [advice, setAdvice] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -90,19 +92,19 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">AI Savings Coach</h1>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <UserIcon className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto font-sans relative">
+        <DashboardHeader 
+          title="AI Savings Coach" 
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-4xl mx-auto space-y-8 pb-20 relative">
+        <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
           {tier !== 'premium' && (
              <div className="absolute inset-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8">
                 <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-slate-100">

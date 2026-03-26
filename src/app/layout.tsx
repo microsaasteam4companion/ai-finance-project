@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from 'react-hot-toast';
 import UpvoteWidget from '@/components/UpvoteWidget';
@@ -27,15 +28,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 transition-colors duration-200 selection:bg-indigo-500/30">
-        <AuthProvider>
-          <Toaster position="top-center" />
-          <UpvoteWidget />
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200 selection:bg-indigo-500/30">
+        <ThemeProvider>
+          <AuthProvider>
+            <Toaster position="top-center" />
+            <UpvoteWidget />
 
-          {children}
-        </AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+

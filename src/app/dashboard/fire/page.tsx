@@ -4,9 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, TrendingUp, Target, Calculator, Lock, CreditCard, CheckCircle2, ShieldCheck, ArrowRight, ArrowDownRight } from 'lucide-react';
+import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, TrendingUp, Target, Calculator, Lock, CreditCard, CheckCircle2, ShieldCheck, ArrowRight, ArrowDownRight, Menu } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Sidebar from '@/components/Sidebar';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function FirePlannerPage() {
   const { user, loading: authLoading, tier } = useAuth();
@@ -20,6 +21,7 @@ export default function FirePlannerPage() {
   const [inflationRate, setInflationRate] = useState<number>(6);
   const [expectedReturn, setExpectedReturn] = useState<number>(12);
   const [currentCorpus, setCurrentCorpus] = useState<number>(500000); // 5L baseline default
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -113,21 +115,21 @@ export default function FirePlannerPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
-      <Sidebar />
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
-      <main className="flex-1 overflow-y-auto w-full">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-20">
-          <div>
-             <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">FIRE Planner <span className="bg-orange-100 text-orange-600 text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Early Access</span></h1>
-             <p className="text-sm text-slate-500 font-medium">Financial Independence, Retire Early.</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
-            <UserIcon className="w-5 h-5" />
-          </div>
-        </header>
+      <main className="flex-1 overflow-y-auto w-full font-sans relative">
+        <DashboardHeader 
+          title="FIRE Planner" 
+          subtitle="Financial Independence, Retire Early."
+          badge="Early Access"
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-        <div className="p-8 max-w-6xl mx-auto space-y-8 pb-20 relative">
+        <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
 
           {tier !== 'premium' && (
              <div className="absolute inset-x-0 top-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8 h-[600px]">

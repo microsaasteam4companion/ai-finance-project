@@ -5,7 +5,14 @@ import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Home, PieChart, Activity, Sparkles, TrendingUp, CreditCard, LogOut, User, Rocket, FileText, LayoutDashboard, Lock } from 'lucide-react';
 
-export default function Sidebar() {
+import { ThemeToggle } from './ThemeToggle';
+
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, tier } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -32,28 +39,41 @@ export default function Sidebar() {
   const isPremium = tier === 'premium';
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
-      <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center">
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 md:hidden transition-opacity duration-300"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 w-64 bg-card border-r border-border flex flex-col z-50 
+        transition-transform duration-300 transform md:relative md:translate-x-0 md:flex md:z-auto
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+      <div className="p-6 border-b border-border flex items-center gap-3">
+        <div className="w-10 h-10 rounded-md overflow-hidden flex items-center justify-center">
           <img src="/logo.png" alt="FinGenius Logo" className="w-full h-full object-cover" />
         </div>
-        <span className="font-bold text-xl tracking-tight text-slate-900">FinGenius</span>
+        <span className="font-bold text-xl tracking-tight text-foreground">FinGenius</span>
       </div>
       
-      <nav className="flex-1 p-4 space-y-1">
-        <div className="pb-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Core Tools</div>
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
+        <div className="pb-2 px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Core Tools</div>
         {navItems.map((item) => (
           <a 
             key={item.name}
             href={item.href} 
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === item.href ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}
           >
             <item.icon className="w-5 h-5" />
             {item.name}
           </a>
         ))}
 
-        <div className="pt-6 pb-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+        <div className="pt-6 pb-2 px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
           Premium Wealth {!isPremium && <Sparkles className="w-3 h-3 text-orange-400 animate-pulse" />}
         </div>
         {premiumItems.map((item) => {
@@ -63,24 +83,29 @@ export default function Sidebar() {
             <a 
               key={item.name}
               href={isLocked ? "/dashboard/billing" : item.href} 
-              className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors font-medium ${isLocked ? 'text-slate-400 hover:bg-slate-50' : isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}
+              className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors font-medium ${isLocked ? 'text-muted-foreground/50 hover:bg-muted' : isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}
             >
               <div className="flex items-center gap-3">
-                <item.icon className={`w-5 h-5 ${isLocked ? 'text-slate-300' : isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+                <item.icon className={`w-5 h-5 ${isLocked ? 'text-muted-foreground/30' : isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                 {item.name}
               </div>
-              {isLocked && <Lock className="w-3.5 h-3.5 text-slate-300" />}
+              {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/30" />}
             </a>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-100">
-        <a href="/dashboard/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium mb-1 ${pathname === '/dashboard/billing' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}>
+      <div className="p-4 border-t border-border space-y-2">
+        <div className="flex items-center justify-between px-3 py-2 text-sm text-muted-foreground font-medium md:hidden">
+          <span>Appearance</span>
+          <ThemeToggle />
+        </div>
+        <a href="/dashboard/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === '/dashboard/billing' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}>
            <CreditCard className="w-5 h-5" /> Billing & Plans
         </a>
-        <button onClick={handleSignOut} className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors font-medium"><LogOut className="w-5 h-5" />Log Out</button>
       </div>
     </aside>
+    </>
   );
 }
+

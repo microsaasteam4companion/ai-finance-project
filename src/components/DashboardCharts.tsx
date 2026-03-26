@@ -37,9 +37,9 @@ export default function DashboardCharts({ transactions }: { transactions: any[] 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10">
       
       {/* Chart 1: Month-over-Month Income vs Expense */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">Savings Trends</h3>
-        <div className="h-72 w-full">
+      <div className="bg-card rounded-3xl p-4 md:p-6 border border-border shadow-sm">
+        <h3 className="text-lg md:text-xl font-bold text-foreground mb-6 flex items-center gap-2">Savings Trends</h3>
+        <div className="h-64 md:h-72 w-full">
            {trendData.length > 0 ? (
              <ResponsiveContainer width="100%" height="100%">
                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -53,28 +53,35 @@ export default function DashboardCharts({ transactions }: { transactions: any[] 
                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                    </linearGradient>
                  </defs>
-                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                 <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                 <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                  <Tooltip 
                    formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
-                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                   contentStyle={{ 
+                     backgroundColor: 'var(--card)', 
+                     borderColor: 'var(--border)', 
+                     borderRadius: '12px', 
+                     color: 'var(--foreground)',
+                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
+                   }}
+                   itemStyle={{ color: 'var(--foreground)' }}
                  />
-                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px', color: 'var(--foreground)' }} />
                  <Area type="monotone" dataKey="income" name="Income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                  <Area type="monotone" dataKey="expense" name="Expense" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
                </AreaChart>
              </ResponsiveContainer>
            ) : (
-             <div className="flex h-full items-center justify-center text-slate-400">Add transactions to see trends</div>
+             <div className="flex h-full items-center justify-center text-muted-foreground">Add transactions to see trends</div>
            )}
         </div>
       </div>
 
       {/* Chart 2: Category Breakdown Pie Chart */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col">
-        <h3 className="text-xl font-bold text-slate-800 mb-6">Expense Breakdown</h3>
-        <div className="h-72 w-full flex-1 flex items-center justify-center relative">
+      <div className="bg-card rounded-3xl p-4 md:p-6 border border-border shadow-sm flex flex-col">
+        <h3 className="text-lg md:text-xl font-bold text-foreground mb-6">Expense Breakdown</h3>
+        <div className="h-64 md:h-72 w-full flex-1 flex items-center justify-center relative">
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -82,12 +89,12 @@ export default function DashboardCharts({ transactions }: { transactions: any[] 
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={50}
+                  outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
-                  label={({ name, percent }: any) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
-                  labelLine={false}
+                  label={({ name, percent }: any) => window.innerWidth > 640 ? `${name} ${percent ? (percent * 100).toFixed(0) : 0}%` : ''}
+                  labelLine={window.innerWidth > 640}
                   stroke="none"
                 >
                   {pieData.map((entry, index) => (
@@ -96,12 +103,19 @@ export default function DashboardCharts({ transactions }: { transactions: any[] 
                 </Pie>
                 <Tooltip 
                    formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
-                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                   contentStyle={{ 
+                     backgroundColor: 'var(--card)', 
+                     borderColor: 'var(--border)', 
+                     borderRadius: '12px', 
+                     color: 'var(--foreground)',
+                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
+                   }}
+                   itemStyle={{ color: 'var(--foreground)' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-             <div className="text-slate-400">Add expenses to view breakdown</div>
+             <div className="text-muted-foreground">Add expenses to view breakdown</div>
           )}
         </div>
       </div>
@@ -109,3 +123,4 @@ export default function DashboardCharts({ transactions }: { transactions: any[] 
     </div>
   );
 }
+

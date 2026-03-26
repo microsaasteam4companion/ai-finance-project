@@ -73,8 +73,8 @@ export default function LoginPage() {
       <div className="hidden lg:flex w-1/2 flex-col justify-center px-16 bg-gradient-to-br from-indigo-900 to-indigo-950 text-white relative">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10 max-w-lg mx-auto text-center lg:text-left">
-          <div className="w-16 h-16 bg-white/10 rounded-2xl mb-8 backdrop-blur-md overflow-hidden flex items-center justify-center">
-            <img src="/logo.png" alt="FinGenius Logo" className="w-full h-full object-cover" />
+          <div className="w-16 h-16 rounded-none mb-8 overflow-hidden flex items-center justify-center">
+            <img src="/logo.png" alt="FinGenius Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight mb-6">
             Meet your personal<br />AI wealth mentor.
@@ -84,8 +84,8 @@ export default function LoginPage() {
           </p>
           
           <div className="space-y-6 text-left">
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-300">
+            <div className="flex items-center gap-4 p-4 rounded-none bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="p-2 bg-indigo-500/20 rounded-none text-indigo-300">
                 <BrainCircuit className="w-6 h-6" />
               </div>
               <div>
@@ -93,8 +93,8 @@ export default function LoginPage() {
                 <p className="text-sm text-indigo-200/60">Automated nudges & recommendations</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-300">
+            <div className="flex items-center gap-4 p-4 rounded-none bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="p-2 bg-indigo-500/20 rounded-none text-indigo-300">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
@@ -133,7 +133,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors shadow-sm"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-none text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors shadow-sm"
                   placeholder="Enter your username"
                 />
               </div>
@@ -160,14 +160,14 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors shadow-sm"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-none text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors shadow-sm"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-start gap-2">
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-none border border-red-100 flex items-start gap-2">
                 <span className="shrink-0 leading-5">⚠</span>
                 <span>{error}</span>
               </div>
@@ -176,7 +176,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="w-full flex items-center justify-center py-2.5 px-4 rounded-none shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
