@@ -3,12 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
-import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UploadCloud, FileText, CheckCircle2, ShieldAlert, Loader2, IndianRupee, Lock, CreditCard, ArrowRight, Menu } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle2, ShieldAlert, Loader2, IndianRupee, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tesseract from 'tesseract.js';
-import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
 
 export default function TaxWizardPage() {
@@ -19,20 +16,18 @@ export default function TaxWizardPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [taxData, setTaxData] = useState<any>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [user, authLoading]);
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
+  if (authLoading || !user) {
+    return (
+       <div className="flex w-full items-center justify-center min-h-[400px]">
+          <div className="animate-pulse w-12 h-12 bg-indigo-200 rounded-full" />
+       </div>
+    );
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     try {
       setIsScanning(true);
@@ -47,7 +42,7 @@ export default function TaxWizardPage() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('userId', user?.uid || '');
+        formData.append('userId', user.uid);
 
         const analysisRes = await fetch('/api/tax', {
           method: 'POST',
@@ -71,7 +66,7 @@ export default function TaxWizardPage() {
         const analysisRes = await fetch('/api/tax', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, userId: user?.uid })
+          body: JSON.stringify({ text, userId: user.uid })
         });
         
         const data = await analysisRes.json();
@@ -91,6 +86,7 @@ export default function TaxWizardPage() {
   };
 
   const handleManualIncomeUpdate = async (manualIncome: number) => {
+    if (!user) return;
     try {
       setIsAnalyzing(true);
       toast.loading('AI re-calculating Tax regimes...', { id: 'tax' });
@@ -98,7 +94,7 @@ export default function TaxWizardPage() {
       const analysisRes = await fetch('/api/tax', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manualIncome, userId: user?.uid })
+        body: JSON.stringify({ manualIncome, userId: user.uid })
       });
       
       const data = await analysisRes.json();
@@ -114,42 +110,29 @@ export default function TaxWizardPage() {
     }
   };
 
-  if (authLoading || !user) {
-    return <div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>;
-  }
-
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+    <main className="flex-1 overflow-y-auto w-full font-sans relative">
+      <DashboardHeader 
+        title="CA Tax Wizard" 
+        subtitle="India-focused regime comparison & 80C deductions."
       />
 
-      <main className="flex-1 overflow-y-auto w-full font-sans relative">
-        <DashboardHeader 
-          title="CA Tax Wizard" 
-          subtitle="India-focused regime comparison & 80C deductions."
-          onOpenSidebar={() => setSidebarOpen(true)}
-        />
+      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
 
-        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
+        {tier !== 'premium' && (
+           <div className="absolute inset-x-0 top-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8 h-[600px]">
+              <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-slate-100">
+                 <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-6">
+                    <Lock className="w-8 h-8" />
+                 </div>
+                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Premium Feature</h2>
+                 <p className="text-slate-500 mb-8 font-medium">The CA Tax Wizard is an advanced intelligence tool. Upgrade to FinGenius Premium to unlock this feature.</p>
+                 <button onClick={() => router.push('/dashboard/billing')} className="bg-purple-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-purple-700 transition w-full shadow-lg shadow-purple-600/30">Unlock Premium (₹199)</button>
+              </div>
+           </div>
+        )}
 
-          {tier !== 'premium' && (
-             <div className="absolute inset-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-slate-100">
-                   <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-6">
-                      <Lock className="w-8 h-8" />
-                   </div>
-                   <h2 className="text-2xl font-bold text-slate-800 mb-2">Premium Feature</h2>
-                   <p className="text-slate-500 mb-8 font-medium">The CA Tax Wizard is an advanced intelligence tool. Upgrade to FinGenius Premium to unlock this feature.</p>
-                   <button onClick={() => router.push('/dashboard/billing')} className="bg-purple-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-purple-700 transition w-full shadow-lg shadow-purple-600/30">Unlock Premium (₹199)</button>
-                </div>
-             </div>
-          )}
-
-          <div className={tier !== 'premium' ? 'opacity-30 pointer-events-none blur-sm select-none space-y-8' : 'space-y-8'}>
-
-          {/* Upload or Input Section */}
+        <div className={tier !== 'premium' ? 'opacity-30 pointer-events-none blur-sm select-none space-y-8' : 'space-y-8'}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
              <div className="bg-white border-2 border-dashed border-purple-200 bg-purple-50/50 rounded-3xl p-8 text-center flex flex-col items-center justify-center relative overflow-hidden transition-colors hover:bg-purple-50">
                 <input type="file" accept="image/*,application/pdf" onChange={handleFileUpload} className="hidden" ref={fileInputRef} />
@@ -205,22 +188,19 @@ export default function TaxWizardPage() {
              </div>
           </div>
 
-          {/* Results Section */}
           {taxData && (
              <div className="animate-in slide-in-from-bottom-8 duration-500 space-y-8">
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                    <div className="bg-slate-800 text-white rounded-3xl p-6 shadow-lg border border-slate-700 relative group">
                       <div className="text-slate-400 text-sm font-medium mb-1 flex items-center justify-between">
                          <span className="flex items-center gap-1.5"><FileText className="w-4 h-4"/> Detected Gross Income</span>
                          <button 
                            onClick={() => {
-                              const newVal = prompt("Enter Gross Annual Income:", taxData.estimatedIncome);
-                              if (newVal !== null) {
-                                  const income = parseInt(newVal.replace(/,/g, ''));
-                                  // Re-fetch analysis with manual income
-                                  handleManualIncomeUpdate(income);
-                              }
+                               const newVal = prompt("Enter Gross Annual Income:", taxData.estimatedIncome);
+                               if (newVal !== null) {
+                                   const income = parseInt(newVal.replace(/,/g, ''));
+                                   handleManualIncomeUpdate(income);
+                               }
                            }}
                            className="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300 transition-colors"
                          >
@@ -306,15 +286,10 @@ export default function TaxWizardPage() {
                        </div>
                     </div>
                  </div>
-
-
              </div>
           )}
-
-          </div>
-
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

@@ -3,12 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
-import { LogOut, Home, PieChart, Sparkles, User as UserIcon, Activity, Rocket, UploadCloud, FileText, LayoutDashboard, Crosshair, BarChart3, AlertCircle, TrendingUp, Loader2, IndianRupee, Lock, CreditCard, ArrowRight, Menu } from 'lucide-react';
+import { Sparkles, Activity, Rocket, UploadCloud, FileText, Crosshair, TrendingUp, Loader2, IndianRupee, Lock, PieChart, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Tesseract from 'tesseract.js';
-import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
 
 export default function PortfolioXrayPage() {
@@ -19,20 +16,18 @@ export default function PortfolioXrayPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [portfolioData, setPortfolioData] = useState<any>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [user, authLoading]);
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
+  if (authLoading || !user) {
+    return (
+       <div className="flex w-full items-center justify-center min-h-[400px]">
+          <div className="animate-pulse w-12 h-12 bg-indigo-200 rounded-full" />
+       </div>
+    );
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     try {
       setIsScanning(true);
@@ -47,7 +42,7 @@ export default function PortfolioXrayPage() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('userId', user?.uid || '');
+        formData.append('userId', user.uid);
 
         const analysisRes = await fetch('/api/portfolio', {
           method: 'POST',
@@ -71,7 +66,7 @@ export default function PortfolioXrayPage() {
         const analysisRes = await fetch('/api/portfolio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, userId: user?.uid })
+          body: JSON.stringify({ text, userId: user.uid })
         });
         
         const data = await analysisRes.json();
@@ -90,39 +85,29 @@ export default function PortfolioXrayPage() {
     }
   };
 
-  if (authLoading || !user) {
-    return <div className="flex h-screen bg-slate-50 items-center justify-center"><div className="w-12 h-12 bg-indigo-200 rounded-full animate-pulse" /></div>;
-  }
-
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900 relative">
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+    <main className="flex-1 overflow-y-auto w-full font-sans relative">
+      <DashboardHeader 
+        title="MF Portfolio X-Ray" 
+        subtitle="Scan statements for overlap & expense analysis."
       />
 
-      <main className="flex-1 overflow-y-auto w-full font-sans relative">
-        <DashboardHeader 
-          title="MF Portfolio X-Ray" 
-          subtitle="Scan statements for overlap & expense analysis."
-          onOpenSidebar={() => setSidebarOpen(true)}
-        />
+      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
 
-        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20 relative">
+        {tier !== 'premium' && (
+           <div className="absolute inset-x-0 top-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8 h-[600px]">
+              <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-slate-100">
+                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
+                    <Lock className="w-8 h-8" />
+                 </div>
+                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Premium Feature</h2>
+                 <p className="text-slate-500 mb-8 font-medium">Mutual Fund X-Ray is an advanced AI intelligence tool calculating live exposures. Upgrade to Premium to unlock it.</p>
+                 <button onClick={() => router.push('/dashboard/billing')} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition w-full shadow-lg shadow-blue-600/30">Unlock Premium (₹199)</button>
+              </div>
+           </div>
+        )}
 
-          {tier !== 'premium' && (
-             <div className="absolute inset-0 z-50 rounded-3xl backdrop-blur-md bg-white/60 flex flex-col items-center justify-center border border-slate-200 mt-8 mb-20 shadow-xl overflow-hidden mx-8">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md border border-slate-100">
-                   <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
-                      <Lock className="w-8 h-8" />
-                   </div>
-                   <h2 className="text-2xl font-bold text-slate-800 mb-2">Premium Feature</h2>
-                   <p className="text-slate-500 mb-8 font-medium">Mutual Fund X-Ray is an advanced AI intelligence tool calculating live exposures. Upgrade to Premium to unlock it.</p>
-                   <button onClick={() => router.push('/dashboard/billing')} className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition w-full shadow-lg shadow-blue-600/30">Unlock Premium (₹199)</button>
-                </div>
-             </div>
-          )}          <div className={tier !== 'premium' ? 'opacity-30 pointer-events-none blur-sm select-none space-y-8' : 'space-y-8'}>
-
+        <div className={tier !== 'premium' ? 'opacity-30 pointer-events-none blur-sm select-none space-y-8' : 'space-y-8'}>
           <div className="bg-white border-2 border-dashed border-blue-200 bg-blue-50/30 rounded-3xl p-10 text-center flex flex-col items-center justify-center relative overflow-hidden transition-colors hover:bg-blue-50/80">
              <input type="file" accept="image/*,application/pdf" onChange={handleFileUpload} className="hidden" ref={fileInputRef} />
              
@@ -148,7 +133,6 @@ export default function PortfolioXrayPage() {
 
           {portfolioData && (
               <div className="animate-in slide-in-from-bottom-8 duration-500 space-y-8">
-                 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 relative group overflow-hidden">
                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/20 transition-all"></div>
@@ -219,14 +203,10 @@ export default function PortfolioXrayPage() {
                        </div>
                     </div>
                  </div>
-
               </div>
            )}
-          
-          </div>
-
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

@@ -8,6 +8,8 @@ import { Home, PieChart, Activity, Sparkles, TrendingUp, CreditCard, LogOut, Use
 
 import { ThemeToggle } from './ThemeToggle';
 
+import Link from 'next/link';
+
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
@@ -24,9 +26,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home, type: 'free' },
-    { name: 'Budgets', href: '/dashboard/budgets', icon: PieChart, type: 'free' },
-    { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: Activity, type: 'free' },
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Budgets', href: '/dashboard/budgets', icon: PieChart },
+    { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: Activity },
   ];
 
   const premiumItems = [
@@ -64,14 +66,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
         <div className="pb-2 px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Core Tools</div>
         {navItems.map((item) => (
-          <a 
+          <Link 
             key={item.name}
             href={item.href} 
+            onClick={onClose}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === item.href ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}
           >
             <item.icon className="w-5 h-5" />
             {item.name}
-          </a>
+          </Link>
         ))}
 
         <div className="pt-6 pb-2 px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-between">
@@ -81,9 +84,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           const isLocked = !isPremium;
           const isActive = pathname === item.href;
           return (
-            <a 
+            <Link 
               key={item.name}
               href={isLocked ? "/dashboard/billing" : item.href} 
+              onClick={onClose}
               className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors font-medium ${isLocked ? 'text-muted-foreground/50 hover:bg-muted' : isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}
             >
               <div className="flex items-center gap-3">
@@ -91,7 +95,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {item.name}
               </div>
               {isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground/30" />}
-            </a>
+            </Link>
           );
         })}
       </nav>
@@ -101,9 +105,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <span>Appearance</span>
           <ThemeToggle />
         </div>
-        <a href="/dashboard/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === '/dashboard/billing' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}>
+        <Link href="/dashboard/billing" onClick={onClose} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors font-medium ${pathname === '/dashboard/billing' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-primary'}`}>
            <CreditCard className="w-5 h-5" /> Billing & Plans
-        </a>
+        </Link>
       </div>
     </aside>
     </>
