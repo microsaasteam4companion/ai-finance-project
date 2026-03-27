@@ -1,10 +1,7 @@
 import DodoPayments from 'dodopayments';
 import { NextResponse } from 'next/server';
 
-const client = new DodoPayments({
-  bearerToken: process.env['DODO_PAYMENTS_API_KEY'],
-  environment: 'test_mode', // change to 'live_mode' for production
-});
+// Client initialization moved inside the handler for runtime resilience
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +10,17 @@ export async function POST(req: Request) {
     if (!userId || !email) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
+
+    const apiKey = process.env.DODO_PAYMENTS_API_KEY;
+    if (!apiKey) {
+      console.error('Dodo API Key is missing in environment variables');
+      return NextResponse.json({ error: 'Config Error: API Key missing' }, { status: 500 });
+    }
+
+    const client = new DodoPayments({
+      bearerToken: apiKey,
+      environment: 'test_mode',
+    });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     

@@ -2,18 +2,22 @@ import DodoPayments from 'dodopayments';
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 
-const client = new DodoPayments({
-  bearerToken: process.env['DODO_PAYMENTS_API_KEY'],
-  environment: 'test_mode',
-});
+// Client initialization moved inside the handler for runtime resilience
 
 export async function POST(req: Request) {
   try {
     const { paymentId, userId } = await req.json();
 
-    if (!paymentId) {
-      return NextResponse.json({ error: 'Missing paymentId' }, { status: 400 });
+    const apiKey = process.env.DODO_PAYMENTS_API_KEY;
+    if (!apiKey) {
+      console.error('Dodo API Key is missing in environment variables');
+      return NextResponse.json({ error: 'Config Error: API Key missing' }, { status: 500 });
     }
+
+    const client = new DodoPayments({
+      bearerToken: apiKey,
+      environment: 'test_mode',
+    });
 
     // Retrieve payment status directly from Dodo
     const payment = await client.payments.retrieve(paymentId);
