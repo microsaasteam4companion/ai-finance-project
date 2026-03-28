@@ -4,8 +4,9 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Share2, Sparkles, ChevronDown } from 'lucide-react';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const blog = blogs.find(b => b.slug === params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const blog = blogs.find(b => b.slug === resolvedParams.slug);
   if (!blog) return {};
   
   return {
@@ -22,8 +23,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const blog = blogs.find(b => b.slug === params.slug);
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const blog = blogs.find(b => b.slug === resolvedParams.slug);
   
   if (!blog) {
     notFound();
