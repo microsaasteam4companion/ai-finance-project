@@ -8,7 +8,7 @@ import { Activity, HandCoins, CalendarClock, Bot, Plus, Lock } from 'lucide-reac
 import DashboardHeader from '@/components/DashboardHeader';
 
 export default function SubscriptionsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, tier, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
